@@ -35,7 +35,7 @@ function awscm() {
   fi
 
   case "$1" in
-    "add") aws_add "$2" ;;
+    "add") aws_add "$2" "$3";;
     "configure") aws_configure ;;
     "list") aws_list "$2" ;;
     "output") aws_output "$2" ;;
@@ -47,16 +47,24 @@ function awscm() {
 }
 
 function aws_add() {
-
   if [ -z "$1" ]; then
     echo "No profile name supplied."
   else
     if grep -q "$1" ~/.aws/credentials; then
       echo "Updating the AWS profile [${1}]:"
-    else
+    elif [ -n "$2" ]; then
       echo "Creating the AWS profile [${1}]:"
+      echo "" >> ~/.aws/credentials
+      echo "" >> ~/.aws/config
+      echo "[${1}]" >> ~/.aws/credentials
+      echo "[profile ${1}]" >> ~/.aws/config
+      set_credentials "$2"
+      echo "New profile created."
+    else
+      echo "No credentials file supplied, please input them manually."
+      echo "Creating the AWS profile [${1}]:"
+      aws configure --profile "${1}"
     fi
-    aws configure --profile "${1}"
   fi
 }
 
@@ -172,4 +180,16 @@ function is_region_valid() {
     fi
   done
   return 1
+}
+
+function set_credentials() {
+
+  IFS=","
+  sed 1d $1 | read f1 f2 f3
+  ak=$f2
+  sk=$f3
+  echo "aws_access_key_id = $ak" >> ~/.aws/credentials
+  echo "aws_secret_access_key = $sk" >> ~/.aws/credentials
+  echo "region = eu-west-1" >> ~/.aws/config
+  echo "output = json" >> ~/.aws/config
 }
